@@ -1,0 +1,123 @@
+Pada tutorial ini, saya belajar bahwa Spring juga mampu menyediakan layanan Web Service, terutama layanan REST API yang tentunya menjadi standar terbaru belakangan ini. Membuat REST API pada spring cukup menyenangkan karena tinggal memakai template dari Spring yang sudah ada, dan tinggal memanggil fungsinya saja. Selain diajarkan membuat aplikasi Spring yang mampu memberikan layanan Web Service berupa REST API, saya juga belajar bahwa Spring bisa secara langsung mengkonsumsi atau menggunakan data dari layanan REST API yang sudah ada.
+
+Latihan:
+
+1. Method View All Students
+
+Kode:
+  StudentRestController.java
+  `
+    @RequestMapping("/student/viewall")
+    public List<StudentModel> viewAllStudent () {
+      List<StudentModel> students = studentService.selectAllStudents();
+
+      return students;
+    }
+  `
+
+Penjelasan:
+  Pada Potongan Kode diatas, terlihat saya menggunakan service yang sudah ada untuk mengembalikan data semua pelajar, karena kodingan ini ada pada sebuah kelas yang didekorasi oleh @RestController, maka method ini akan otomatis memberikan response berupa list object StudentModel dalam sebuah array berisi masing masing object Student dan berbentuk JSON.
+
+2. Method View Course & View All Course
+
+Kode:
+  StudentRestController.java
+  `
+    @RequestMapping("/course/view/{id_course}")
+    public CourseModel viewCourse (@PathVariable(value = "id_course") String id_course) {
+      CourseModel course = studentService.selectCourse(id_course);
+
+      return course;
+    }
+
+    @RequestMapping("/course/viewall")
+    public List<CourseModel> viewAllCourses () {
+      List<CourseModel> courses = studentService.selectAllCourses();
+
+      return courses;
+    }
+  `
+
+Penjelasan:
+  Seperti pada soal nomer satu, layaknya kontroller yang sudah ada, saya melakukan apa yang kontroller biasanya lakukan, akan tetapi setiap method akan memiliki return type berupa tipe data sesuai dengan bentuk data yang diminta, dan akan mengembalikan datanya langsung sebagai response untuk sebuah request, bukan mengembalikan String nama file template yang akan dikembalikan dalam response request tersebut.
+
+3. Implementasi SelectAllStudents di Consumer
+
+Kode:
+  StudentDAOImpl.java
+  `
+    @Override
+    public List<StudentModel> selectAllStudents() {
+      List<StudentModel> students =
+        restTemplate.getForObject(
+          "http://localhost:8080/rest/student/viewall",
+          List.class
+        );
+
+      return students;
+    }
+  `
+
+  StudentServiceRest.java
+  `
+    @Override
+    public List<StudentModel> selectAllStudents() {
+      log.info("REST - Select All Students");
+      return studentDAO.selectAllStudents();
+    }
+  `
+
+Penjelasan:
+  Pada Implementasi fitur ini, saya menambahkan kodingan pada StudentDAOImpl untuk merequest data ke Producer dan menangkap datanya dalam bentuk List<StudentModel> dan mengembalikan data tersebut ke Service yang memanggil. Lalu pada StudentServiceRest, saya menambahkan isi method selectAllStudents dengan logging dan pemanggilan fungsi selectAllStudents dari StudentDAOImpl
+
+4. Implementasi CourseDAO & Service di Consumer
+
+Kode:
+  CourseDAOImpl.java
+  `
+    @Service
+    public class CourseDAOImpl implements CourseDAO {
+      @Autowired
+      RestTemplate restTemplate;
+
+      @Override
+      public CourseModel selectCourse(String id_course) {
+        CourseModel course =
+          restTemplate.getForObject(
+              "http://localhost:8080/rest/course/view/"+id_course,
+              CourseModel.class
+            );
+
+        return course;
+      }
+
+      @Override
+      public List<CourseModel> selectAllCourses() {
+        List<CourseModel> courses =
+          restTemplate.getForObject(
+              "http://localhost:8080/rest/course/viewall",
+              List.class
+            );
+
+        return courses;
+      }
+    }
+  `
+
+  StudentServiceRest.java
+  `
+    @Override
+    public CourseModel selectCourse(String id_course) {
+      log.info("REST - Select Course {}", id_course);
+      return courseDAO.selectCourse(id_course);
+    }
+
+    @Override
+    public List<CourseModel> selectAllCourses() {
+      log.info("REST - Select All Courses");
+      return courseDAO.selectAllCourses();
+    }
+  `
+
+Penjelasan:
+  Seperti soal ketiga, saya tinggal menambahkan DAO baru untuk Course, dan menembak link REST API dari Producer untuk selectCourse dan selectAllCourse, lalu data yang didapat dikembalikan ke method yang memanggil. Pada StudentService, method selectCourse berguna untuk logging dan memanggil method selectCourse yanga da di CourseDAO, dan method selectAllCourse juga berguna untuk loggin dan memanggil method selectAllCourse yang juga ada di CourseDAO. Semua data yang diminta didapat dari aplikasi Producer yang memberikan data melalui medium WebService REST API, dimana setiap request akan diberikan balasan response berupa JSON Object yang berisi data, bukan diberikan file" website seperti HTML, CSS, JS dll.
